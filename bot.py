@@ -1,5 +1,4 @@
 import os
-import requests
 import asyncio
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
@@ -31,6 +30,10 @@ async def todo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             formatted = "\n".join(f"{i+1}. {t}" for i, t in enumerate(tasks))
             await update.message.reply_text("📋 Your to-do list:\n" + formatted)
+
+
+
+import requests
 
 async def weather(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
