@@ -9,7 +9,8 @@ def get_shopee_price(url: str):
 
         try:
             title = page.locator(".vR6K3w").inner_text()
-            price_text = page.locator(".IZPeQz B67UQ0").inner_text()
+            price_text = page.locator(".IZPeQz.B67UQ0").inner_text()
+
         except:
             browser.close()
             return None, None
