@@ -98,7 +98,12 @@ async def shopee(update: Update, context: ContextTypes.DEFAULT_TYPE):
         soup = BeautifulSoup(res.text, "html.parser")
 
         # Extract product title and price using class names
-        title = soup.find("title").text.strip().split(" |")[0]
+        title_tag = soup.find("h1", class_="vR6K3w")
+        if title_tag:
+            title = title_tag.text.strip()
+        else:
+            title = soup.find("title").text.strip().split(" |")[0]
+
         price_tag = soup.find("div", class_="IZPeQz B67UQ0")  # this may change; update if broken
 
         if not price_tag:
