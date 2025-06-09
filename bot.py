@@ -74,6 +74,44 @@ async def remindme(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except ValueError:
         await update.message.reply_text("⚠️ Please enter a valid number of minutes.")
 
+
+from bs4 import BeautifulSoup
+
+async def shopee(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.message.reply_text("🔗 Please provide a Shopee product link.\nUsage: /shopee <link>")
+        return
+
+    url = context.args[0]
+
+    # Shopee often blocks non-browser headers; fake a user-agent
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+
+    try:
+        res = requests.get(url, headers=headers)
+        if res.status_code != 200:
+            await update.message.reply_text("⚠️ Could not fetch product info. Try again later.")
+            return
+
+        soup = BeautifulSoup(res.text, "html.parser")
+
+        # Extract product title and price using class names
+        title = soup.find("title").text.strip().split(" |")[0]
+        price_tag = soup.find("div", class_="IZPeQz B67UQ0")  # this may change; update if broken
+
+        if not price_tag:
+            await update.message.reply_text("⚠️ Could not extract the price. Shopee layout might have changed.")
+            return
+
+        price = price_tag.text.strip()
+        await update.message.reply_text(f"📦 *{title}*\n💰 Price: {price}\n🔗 {url}", parse_mode="Markdown")
+    except Exception as e:
+        await update.message.reply_text("❌ Error while scraping Shopee product.")
+        print("Shopee error:", e)
+
+
 # Build the bot
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 
@@ -82,6 +120,7 @@ app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("todo", todo))
 app.add_handler(CommandHandler("weather", weather))
 app.add_handler(CommandHandler("remindme", remindme))
+app.add_handler(CommandHandler("shopee", shopee))
 
 # Start the bot
 app.run_polling()
