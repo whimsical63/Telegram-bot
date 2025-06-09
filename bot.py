@@ -1,8 +1,11 @@
 import os
 import asyncio
+import re
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from dotenv import load_dotenv
+from bs4 import BeautifulSoup
+import requests
 
 load_dotenv()
 
@@ -32,8 +35,6 @@ async def todo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("📋 Your to-do list:\n" + formatted)
 
 
-
-import requests
 
 async def weather(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
@@ -75,8 +76,6 @@ async def remindme(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Please enter a valid number of minutes.")
 
 
-from bs4 import BeautifulSoup
-
 async def shopee(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
         await update.message.reply_text("🔗 Please provide a Shopee product link.\nUsage: /shopee <link>")
@@ -84,39 +83,37 @@ async def shopee(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     url = context.args[0]
 
-    # Shopee often blocks non-browser headers; fake a user-agent
-    headers = {
-        "User-Agent": "Mozilla/5.0"
-    }
+    # Extract item_id and shop_id from the URL
+    match = re.search(r'i\.(\d+)\.(\d+)', url)
+    if not match:
+        await update.message.reply_text("❌ Could not extract item_id and shop_id from the link.")
+        return
+
+    shop_id, item_id = match.group(1), match.group(2)
+    api_url = f"https://shopee.ph/api/v4/pdp/get_pc?item_id={item_id}&shop_id={shop_id}&tz_offset_minutes=480&detail_level=0"
 
     try:
-        res = requests.get(url, headers=headers)
-        print(res.text)  # Add this line to inspect the HTML
-        if res.status_code != 200:
-            await update.message.reply_text("⚠️ Could not fetch product info. Try again later.")
-            return
+        res = requests.get(api_url, headers={"User-Agent": "Mozilla/5.0"})
+        data = res.json()
+        item = data["data"]["item"]
 
-        soup = BeautifulSoup(res.text, "html.parser")
+        title = item["title"]
+        price_min = item.get("price_min", 0) // 100000
+        price_max = item.get("price_max", 0) // 100000
 
-        # Extract product title and price using class names
-        title_tag = soup.find("h1", class_="vR6K3w")
-        if title_tag:
-            title = title_tag.text.strip()
+        # If price_min and price_max are the same, show only one price
+        if price_min == price_max or price_max == 0:
+            price_str = f"₱{price_min}"
         else:
-            title = soup.find("title").text.strip().split(" |")[0]
+            price_str = f"₱{price_min} - ₱{price_max}"
 
-        price_tag = soup.find("div", class_="IZPeQz B67UQ0")  # this may change; update if broken
-
-        if not price_tag:
-            await update.message.reply_text("⚠️ Could not extract the price. Shopee layout might have changed.")
-            return
-
-        price = price_tag.text.strip()
-        await update.message.reply_text(f"📦 *{title}*\n💰 Price: {price}\n🔗 {url}", parse_mode="Markdown")
+        await update.message.reply_text(
+            f"📦 *{title}*\n💰 Price: {price_str}\n🔗 {url}",
+            parse_mode="Markdown"
+        )
     except Exception as e:
-        await update.message.reply_text("❌ Error while scraping Shopee product.")
-        print("Shopee error:", e)
-
+        await update.message.reply_text("❌ Error while fetching Shopee product info.")
+        print("Shopee API error:", e)
 
 # Build the bot
 app = ApplicationBuilder().token(BOT_TOKEN).build()
