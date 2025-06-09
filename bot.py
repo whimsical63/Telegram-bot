@@ -1,7 +1,11 @@
+import os
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from dotenv import load_dotenv
 
-BOT_TOKEN = "8117568792:AAE2L1MotfKPEZJbGUdRMQICDqD1H4NHbUc"
+load_dotenv
+
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Hello! I'm your personal assistant bot 😊")
