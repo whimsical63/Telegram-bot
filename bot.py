@@ -91,6 +91,7 @@ async def shopee(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         res = requests.get(url, headers=headers)
+        print(res.text)  # Add this line to inspect the HTML
         if res.status_code != 200:
             await update.message.reply_text("⚠️ Could not fetch product info. Try again later.")
             return
